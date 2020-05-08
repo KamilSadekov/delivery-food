@@ -19,6 +19,12 @@ var restaurantTitle = document.querySelector('.restaurant-title');
 var rating = document.querySelector('.rating');
 var minPrice = document.querySelector('.price');
 var category = document.querySelector('.category');
+var modalBody = document.querySelector('.modal-body');
+var modalPrice = document.querySelector('.modal-pricetag');
+var clearCart = document.querySelector('.clear-cart');
+
+
+var cart = [];
 
 var getData = async function(url){
   var response = await fetch(url);
@@ -45,6 +51,7 @@ function autorized(){
         buttonAuth.style.display = '';
         userName.style.display = '';
         outAuth.style.display = '';
+        cartButton.style.display = '';
         outAuth.removeEventListener('click', logOut);
         checkAuth();
         
@@ -54,8 +61,10 @@ function autorized(){
     userName.textContent = login;
     buttonAuth.style.display = 'none';
     userName.style.display = 'inline';
-    outAuth.style.display = 'block';
+    outAuth.style.display = 'flex';
+    cartButton.style.display = 'flex';    
     outAuth.addEventListener('click', logOut);
+  
 }
 
 
@@ -118,6 +127,7 @@ function createCardGood(goods) {
 
   var card = document.createElement('div');
   card.className = 'card';
+  // card.id = id;
   card.insertAdjacentHTML('beforeend', `
 						<img src="${image}" alt="image" class="card-image"/>
 						<div class="card-text">
@@ -128,28 +138,23 @@ function createCardGood(goods) {
 								<div class="ingredients">${description}</div>
 							</div>
 							<div class="card-buttons">
-								<button class="button button-primary button-add-cart">
+								<button class="button button-primary button-add-cart" id="${id}">
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">${price} ₽</strong>
+								<strong class="card-price card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
   `);
   cardsMenu.insertAdjacentElement('beforeend', card);
 }
-
-
 function openGoods(event){
   var target = event.target;
   var restaurant = target.closest('.card-restaurant');
   if (restaurant){
      
      var info = restaurant.dataset.info.split(",");
-    var [ name, price, stars, kitchen ] = info;
-
-
-
+     var [ name, price, stars, kitchen ] = info;
     cardsMenu.textContent = '';
     containerPromo.classList.add('hide');
     restaurants.classList.add('hide');
@@ -159,20 +164,109 @@ function openGoods(event){
     rating.textContent = stars;
     minPrice.textContent = `От ${price} ₽`;
     category.textContent = kitchen;
-   
-
     getData(`./db/${restaurant.dataset.products}`).then(function (data) {
-      data.forEach(createCardGood);
+       data.forEach(createCardGood);
     }); 
   }
 }
     getData('./db/partners.json').then(function (data) {
       data.forEach(createCard);
     });
+function renderCart() {
+  modalBody.textContent = "";
+
+  cart.forEach(function ({
+    id,
+    title,
+    cost,
+    count
+  }) {
+    var itemCart = `
+        <div class="food-row">
+        <span class="food-name">${title}</span>
+        <strong class="food-price">${cost}</strong>
+        <div class="food-counter">
+        <button class="counter-button counter-minus" data-id=${id}>-</button>
+        <span class="counter">${count}</span>
+        <button class="counter-button counter-plus" data-id=${id}>+</button>
+        </div>
+        </div>`;
+    modalBody.insertAdjacentHTML("afterbegin", itemCart);
+  });
+
+  var totalPrice = cart.reduce(function (result, item) {
+    return result + parseFloat(item.cost) * item.count;
+  }, 0);
+
+     modalPrice.textContent = totalPrice + ' ₽';
+   
+}
+
+function addToCart(event) {
+    var target = event.target;
+    var buttonAddToCart = target.closest('.button-add-cart');
+  
+  if (buttonAddToCart) {
+    var card = target.closest('.card');
+    var title = card.querySelector('.card-title-reg').textContent;
+    var cost = card.querySelector('.card-price').textContent;
+    var id = buttonAddToCart.id;
+    var food = cart.find(function (item) {
+      return item.id === id;
+    });
+
+    if (food) {
+      food.count += 1;
+    } else {
+      cart.push({
+        id: id,
+        title: title,
+        cost: cost,
+        count: 1,
+      });
+    }
+  }
+}
 
 
+function changeCount(event) {
+  var target = event.target;
+   
+   if (target.classList.contains('counter-button')){
+           const food = cart.find(function (item) {
+             return item.id === target.dataset.id;
+           });
 
-cartButton.addEventListener("click", toggleModal);
+         if (target.classList.contains('counter-minus')) {
+           food.count--;
+           if(food.count === 0) {
+              cart.splice(cart.indexOf(food), 1);
+           }
+         }
+         if (target.classList.contains('counter-plus')) {
+           food.count++;
+         }
+           renderCart();
+   }
+
+  
+
+}
+
+
+cartButton.addEventListener("click", function() {
+  renderCart();
+  toggleModal();
+});
+
+clearCart.addEventListener('click', function(){
+  cart.length = 0;
+  renderCart();
+});
+
+modalBody.addEventListener('click', changeCount);
+
+cardsMenu.addEventListener('click', addToCart);
 
 close.addEventListener("click", toggleModal);
 
