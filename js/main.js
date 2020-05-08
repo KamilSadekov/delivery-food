@@ -15,6 +15,10 @@ var restaurants = document.querySelector('.restaurants');
 var menu = document.querySelector('.menu');
 var logo = document.querySelector('.logo');
 var cardsMenu = document.querySelector('.cards-menu');
+var restaurantTitle = document.querySelector('.restaurant-title');
+var rating = document.querySelector('.rating');
+var minPrice = document.querySelector('.price');
+var category = document.querySelector('.category');
 
 var getData = async function(url){
   var response = await fetch(url);
@@ -85,7 +89,8 @@ checkAuth();
 function createCard(restaurant) {
   var { image, kitchen, name, price, products, stars, time_of_delivery: timeOfDelivery } = restaurant;
 
-  var card = `<a class="card card-restaurant" data-products="${products}">
+  var card = `<a class="card card-restaurant" data-products="${products}"
+                  data-info="${[name, price, stars, kitchen]}">
 						<img src="${image}" alt="image" class="card-image"/>
 						<div class="card-text">
 							<div class="card-heading">
@@ -139,10 +144,23 @@ function openGoods(event){
   var target = event.target;
   var restaurant = target.closest('.card-restaurant');
   if (restaurant){
+     
+     var info = restaurant.dataset.info.split(",");
+    var [ name, price, stars, kitchen ] = info;
+
+
+
     cardsMenu.textContent = '';
     containerPromo.classList.add('hide');
     restaurants.classList.add('hide');
     menu.classList.remove('hide');
+     
+    restaurantTitle.textContent = name;
+    rating.textContent = stars;
+    minPrice.textContent = `От ${price} ₽`;
+    category.textContent = kitchen;
+   
+
     getData(`./db/${restaurant.dataset.products}`).then(function (data) {
       data.forEach(createCardGood);
     }); 
